@@ -1,22 +1,34 @@
-module alu_dec(ALUop,op5,funct3,fuct7,ALUcontrol);
-
-    input op5,funct7; //here only 5th bit of funct 7 used
-    input [2:0] funct3;
-    output [2:0] ALUcontrol;
-
-    wire[1:0] concat; // 2single bit numbers are concatinated
-
-    assign concat = {op5,funct7};
-
-    assign ALUcontrol = (ALUop == 2'b00) ? 3'b000 :
-                        (ALUop == 2'b01) ? 3'b001 :
-                        ((ALUop == 2'b10) & (funct3 == 3'b010)) ? 3'b101 :
-                        ((ALUop == 2'b10) & (funct3 == 3'b110)) ? 3'b011 :
-                        ((ALUop == 2'b10) & (funct3 == 3'b111)) ? 3'b010 :
-                        ((ALUop == 2'b10) & (funct3 == 3'b000) & (concat == 2'b11)) ?  3'b001 :
-                        ((ALUop == 2'b10) & (funct3 == 3'b000) & (concat != 2'b11)) ?  3'b000 : 3'b000;
-
-                        
+`timescale 1ns /1ps
 
 
-endmodule               
+module Main_Decoder(Op,
+                    RegWrite,
+                    ImmSrc,
+                    ALUSrc,
+                    MemWrite,
+                    ResultSrc,
+                    Branch,
+                    ALUOp);
+                    
+    input [6:0]Op;
+    output RegWrite,ALUSrc,MemWrite,ResultSrc,Branch;
+    output [1:0]ImmSrc,ALUOp;
+
+    assign RegWrite = (Op == 7'b0000011 | Op == 7'b0110011) ? 1'b1 :
+                                                              1'b0 ;
+    assign ImmSrc = (Op == 7'b0100011) ? 2'b01 : 
+                    (Op == 7'b1100011) ? 2'b10 :    
+                                         2'b00 ;
+    assign ALUSrc = (Op == 7'b0000011 | Op == 7'b0100011) ? 1'b1 :
+                                                            1'b0 ;
+    assign MemWrite = (Op == 7'b0100011) ? 1'b1 :
+                                           1'b0 ;
+    assign ResultSrc = (Op == 7'b0000011) ? 1'b1 :
+                                            1'b0 ;
+    assign Branch = (Op == 7'b1100011) ? 1'b1 :
+                                         1'b0 ;
+    assign ALUOp = (Op == 7'b0110011) ? 2'b10 :
+                   (Op == 7'b1100011) ? 2'b01 :
+                                        2'b00 ;
+
+endmodule
