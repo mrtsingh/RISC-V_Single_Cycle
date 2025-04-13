@@ -1,3 +1,4 @@
+`timescale 1ns /1ps
 module alu(A,B,ALUcontrol,Result,Z_F,N_F,V_F,C_F);
     //declaring inputs
     input [31:0] A,B;
