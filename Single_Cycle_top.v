@@ -1,52 +1,71 @@
-module Single_Cycle_top(clk,rst);
+`timescale 1ns /1ps
 
-    input rst,clk;
+module Single_Cycle_Top(clk,
+                        rst);
 
-    wire[31:0] PC_Top;
-    wire RegWrite;
-    wire[31:0] RD_Instr,RD1_Top,Imm_Ext_Top,ALUResult,ReadData,PCPlus4;
-    wire[2:0] ALUControl_Top;
+    input clk,rst;
 
-    pc pc_instan(.clk(clk),
-                .rst(rst),
-                .PC(PC_Top),
-                .PC_Next(PCPlus4)
-            );
-            PC_Adder PC_Adder_instan(.a(PC_Top),
-                                    .b(32'd4),
-                                    .c(PCPlus4)
+    wire [31:0] PC_Top,RD_Instr,RD1_Top,Imm_Ext_Top,ALUResult,ReadData,PCPlus4,RD2_Top,SrcB,Result;
+    wire RegWrite,MemWrite,ALUSrc,ResultSrc;
+    wire [1:0]ImmSrc;
+    wire [2:0]ALUControl_Top;
 
-            );
+    PC_Module PC(
+        .clk(clk),
+        .rst(rst),
+        .PC(PC_Top),
+        .PC_Next(PCPlus4)
+    );
 
-    instr_mem instruction_memory_instan(.rst(rst),
-                                        .A(PC_Top),
-                                        .RD(RD_Instr));
-    reg_file reg_instan(
-                            .clk(clk),.rst(rst),
-                            .we3(RegWrite),
-                            .wd3(ReadData),
+    PC_Adder PC_Adder(
+                    .a(PC_Top),
+                    .b(32'd4),
+                    .c(PCPlus4)
+    );
+    
+    Instruction_Memory ins_mem(
+                            .rst(rst),
+                            .A(PC_Top),
+                            .RD(RD_Instr)
+    );
+
+    Register_File reg_file(
+                            .clk(clk),
+                            .rst(rst),
+                            .WE3(RegWrite),
+                            .WD3(Result),
                             .A1(RD_Instr[19:15]),
                             .A2(RD_Instr[24:20]),
-                            .A3(RD_Instr[11:7]).
-                            .rd1(RD1_Top),
-                            .rd2(RD2_Top)
+                            .A3(RD_Instr[11:7]),
+                            .RD1(RD1_Top),
+                            .RD2(RD2_Top)
     );
 
-    se se_instan(.In(RD_Instr),
-                .Imm_Ext(Imm_Ext_Top)); //Extend Block Instantiated
-
-    alu alu_instan(
-                .A(RD1_Top),
-                .B(Imm_Ext_Top),
-                .ALUcontrol(ALUControl_Top),
-                .Result(ALUResult),
-                .Z_F(),
-                .N_F(),
-                .V_F(),
-                .C_F()
+    Sign_Extend se     (
+                        .In(RD_Instr),
+                        .ImmSrc(ImmSrc[0]),
+                        .Imm_Ext(Imm_Ext_Top)
     );
 
-    Control_Unit_Top Control_Unit_Top_instan(
+    Mux reg_to_alu(
+                            .a(RD2_Top),
+                            .b(Imm_Ext_Top),
+                            .s(ALUSrc),
+                            .c(SrcB)
+    );
+
+    ALU a (
+            .A(RD1_Top),
+            .B(SrcB),
+            .Result(ALUResult),
+            .ALUControl(ALUControl_Top),
+            .OverFlow(),
+            .Carry(),
+            .Zero(),
+            .Negative()
+    );
+
+    Control_Unit_Top con_unit (
                             .Op(RD_Instr[6:0]),
                             .RegWrite(RegWrite),
                             .ImmSrc(ImmSrc),
@@ -59,16 +78,16 @@ module Single_Cycle_top(clk,rst);
                             .ALUControl(ALUControl_Top)
     );
 
-        Data_Memory Data_Memory_instan(
+    Data_Memory data_mem(
                         .clk(clk),
                         .rst(rst),
-                        .we(MemWrite),
-                        .wd(RD2_Top),
+                        .WE(MemWrite),
+                        .WD(RD2_Top),
                         .A(ALUResult),
-                        .rd(ReadData)
+                        .RD(ReadData)
     );
 
-    Mux Mux_DataMemory_to_Register_instan(
+    Mux data_mem_to_reg(
                             .a(ALUResult),
                             .b(ReadData),
                             .s(ResultSrc),
