@@ -1,26 +1,36 @@
-module reg_file(A1,A2,A3,wd3,we3,rst,clk,rd1,rd2);
+`timescale 1ns /1ps
 
-input[4:0] A1,A2,A3;
-input [31:0] wd3;
-output [31:0] rd1,rd2;
-input clk;
-input rst;
-input we3;//write enable pin
 
-//Creating temporary memory
-reg[31:0] registers [31:0];
+module Register_File(clk,
+                     rst,
+                     WE3,
+                     WD3,
+                     A1,
+                     A2,
+                     A3,
+                     RD1,
+                     RD2);
 
-//read functionality
-assign rd1 = (!rst) ? 32'h00000000 : registers[A1];
-assign rd2 = (!rst) ? 32'h00000000 : registers[A2];
+    input clk,rst,WE3;
+    input [4:0]A1,A2,A3;
+    input [31:0]WD3;
+    output [31:0]RD1,RD2;
 
-//write functionality
-always @(posedge clk)
-begin
-    if(we3)
+    reg [31:0] Register [31:0];
+
+    always @ (posedge clk)
     begin
-        registers[A3] <= wd3;
+        if(WE3)
+            Register[A3] <= WD3;
     end
-end
+
+    assign RD1 = (~rst) ? 32'd0 : Register[A1];
+    assign RD2 = (~rst) ? 32'd0 : Register[A2];
+
+    initial begin
+        Register[5] = 32'h00000005;
+        Register[6] = 32'h00000004;
+        
+    end
 
 endmodule
